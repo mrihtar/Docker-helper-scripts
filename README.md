@@ -60,6 +60,6 @@ The following scripts are available: **dkl**, **dkll**, **dka**, **dks**,
 
 - **dkrmi [-a] [id/name ...]**
 
-  | ```$ dkrm 77582d6037d7```<br>```$ dkrm openjdk```  | Remove Docker image with id or name.  |
+  | ```$ dkrmi 77582d6037d7```<br>```$ dkrmi openjdk```  | Remove Docker image with id or name.  |
   | -- | -- |
-  | ```$ dkrm -a```  | Remove all Docker images (**CAREFUL!!**).  |
+  | ```$ dkrmi -a```  | Remove all Docker images (**CAREFUL!!**).  |
