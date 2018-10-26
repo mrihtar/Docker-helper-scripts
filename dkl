@@ -1,0 +1,53 @@
+#!/bin/bash
+TMPFILE=`mktemp /tmp/${0##*/}.XXXXX`
+trap 'rm -f $TMPFILE' 0
+HWD=`cd "${0%/*}" >/dev/null 2>&1; echo $PWD`
+#
+SHOW="running"
+EC=""
+SHOW2=""
+re='^[0-9]+$'
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -a ) SHOW="all"; shift ;;
+    -e ) SHOW="exited"; shift
+         if [[ $1 =~ $re ]]; then
+           EC="$1"; shift
+         fi ;;
+    -p ) SHOW2="ports"; shift ;;
+    * ) echo "Usage: ${0##*/} [-a|-e [exit_code]]" 1>&2; exit 1 ;;
+  esac
+done
+#
+case "$SHOW" in
+  all ) docker ps -a | awk -f "$HWD/dkpl.awk" > $TMPFILE ;;
+  exited )
+    if [ "$EC" != "" ]; then
+      docker ps -a -f exited="$EC" | awk -f "$HWD/dkpl.awk" > $TMPFILE
+    else
+      docker ps -a | grep -e NAMES -e Exited | awk -f "$HWD/dkpl.awk" > $TMPFILE
+    fi ;;
+  * ) docker ps | awk -f "$HWD/dkpl.awk" > $TMPFILE ;;
+esac
+#
+# awk: CONTAINER ID; NAME; IMAGE; STATUS; PORTS
+printf "%s  %-35s  %-35s  %s\n" "CONTAINER ID" "NAME" "IMAGE" "STATUS"
+typeset -i RC=0
+re='Exited'
+while IFS= read -a A; do
+  id=${A[0]}
+  name=${A[1]}
+  image=${A[2]}
+  status=${A[3]}
+  ports=${A[4]}
+  if [[ $status =~ $re ]]; then
+    printf "%s  \e[31m%-35s\e[m  %-35s  \e[33m%s\e[m\n" "$id" "$name" "$image" "$status"
+  else
+    printf "%s  \e[31m%-35s\e[m  %-35s  %s\n" "$id" "$name" "$image" "$status"
+  fi
+  if [ "$SHOW2" == "ports" -a -n "$ports" ]; then
+    printf "  \e[32m%s\e[m\n" "$ports"
+  fi
+  let RC=RC+1
+done < $TMPFILE
+echo "$RC containers found"

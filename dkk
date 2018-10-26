@@ -1,0 +1,31 @@
+#!/bin/bash
+TMPFILE=`mktemp /tmp/${0##*/}.XXXXX`
+trap 'rm -f $TMPFILE' 0
+HWD=`cd "${0%/*}" >/dev/null 2>&1; echo $PWD`
+#
+ALL=""; LIST=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -a | all ) ALL=true; shift ;;
+    -? ) echo "Usage: ${0##*/} [-a|all] [id/name ...]" 1>&2; exit 1 ;;
+    * ) [ -n "$1" ] && LIST+=" $1"; shift ;;
+  esac
+done
+[ -z "$LIST" -a -n "$ALL" ] && LIST=all
+#
+docker ps -a | awk -f "$HWD/dkp.awk" > $TMPFILE
+#
+typeset -i RC=0
+for dkn in $LIST; do
+  while IFS= read -a A; do
+    id=${A[0]}
+    name=${A[1]}
+    [ "$name" == "<none>" -o "$dkn" == "$id" ] && name=$id
+    if [ "$dkn" == "$name" -o -n "$ALL" ]; then
+      echo -n "Killing $name: "
+      docker kill $id
+      [ $? -eq 0 ] && let RC=RC+1
+    fi
+  done < $TMPFILE
+done
+echo "$RC containers killed"

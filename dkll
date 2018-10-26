@@ -1,0 +1,42 @@
+#!/bin/bash
+TMPFILE=`mktemp /tmp/${0##*/}.XXXXX`
+trap 'rm -f $TMPFILE' 0
+HWD=`cd "${0%/*}" >/dev/null 2>&1; echo $PWD`
+#
+FOLLOW=""
+LAST=""; LIST=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -f ) FOLLOW=-f; shift ;;
+    -? ) echo "Usage: ${0##*/} [-f] [id/name ...]" 1>&2; exit 1 ;;
+    * ) [ -n "$1" ] && LIST+=" $1"; shift ;;
+  esac
+done
+if [ -z "$LIST" ]; then
+  LAST=true; LIST=all
+fi
+#
+docker ps -a | awk -f "$HWD/dkpl.awk" > $TMPFILE
+#
+typeset -i RC=0
+re='Exited'
+for dkn in $LIST; do
+  while IFS= read -a A; do
+    id=${A[0]}
+    name=${A[1]}; nome=$name
+    image=${A[2]}
+    status=${A[3]}
+    [ "$nome" == "<none>" -o "$dkn" == "$id" ] && nome=$id
+    if [ "$dkn" == "$nome" -o -n "$LAST" ]; then
+      printf "%s  %-35s  %-35s  %s\n" "CONTAINER ID" "NAME" "IMAGE" "STATUS" 1>&2
+      if [[ $status =~ $re ]]; then
+        printf "%s  \e[31m%-35s\e[m  %-35s  \e[33m%s\e[m\n" "$id" "$name" "$image" "$status" 1>&2
+      else
+        printf "%s  \e[31m%-35s\e[m  %-35s  %s\n" "$id" "$name" "$image" "$status" 1>&2
+      fi
+      docker logs $FOLLOW $id
+      [ $? -eq 0 ] && let RC=RC+1
+      [ -n "$LAST" ] && exit 0
+    fi
+  done < $TMPFILE
+done

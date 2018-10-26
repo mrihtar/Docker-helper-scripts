@@ -1,0 +1,41 @@
+#!/bin/bash
+TMPFILE=`mktemp /tmp/${0##*/}.XXXXX`
+trap 'rm -f $TMPFILE' 0
+HWD=`cd "${0%/*}" >/dev/null 2>&1; echo $PWD`
+#
+SHOW="top"
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -a ) SHOW="all"; shift ;;
+    -d ) SHOW="dangling"; shift ;;
+    -? ) echo "Usage: ${0##*/} [-a|-d]" 1>&2; exit 1 ;;
+  esac
+done
+#
+case "$SHOW" in
+  all ) docker images -a | awk -f "$HWD/dkil.awk" > $TMPFILE ;;
+  dangling ) docker images -a -f dangling=true | awk -f "$HWD/dkil.awk" > $TMPFILE ;;
+  * ) docker images | awk -f "$HWD/dkil.awk" > $TMPFILE ;;
+esac
+#
+printf "%-35s  %-18s  %-14s  %-15s  %s\n" "REPOSITORY" "TAG" "IMAGE ID" "CREATED" "SIZE"
+typeset -i RC=0
+re='<none>'
+while IFS= read -a A; do
+  repo=${A[0]}
+  tag=${A[1]}
+  id=${A[2]}
+  created=${A[3]}
+  size=${A[4]}
+  if [[ $repo =~ $re ]]; then
+    printf "%-35s  %-18s  %-14s  %-15s  %s\n" "$repo" "$tag" "$id" "$created" "$size"
+  else
+    if [ "$SHOW" == "dangling" ]; then
+      printf "\e[33m%-35s\e[m  %-18s  %-14s  %-15s  %s\n" "$repo" "$tag" "$id" "$created" "$size"
+    else
+      printf "\e[31m%-35s\e[m  %-18s  %-14s  %-15s  %s\n" "$repo" "$tag" "$id" "$created" "$size"
+    fi
+  fi
+  let RC=RC+1
+done < $TMPFILE
+echo "$RC containers found"
