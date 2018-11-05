@@ -34,7 +34,7 @@ for dkn in $LIST; do
       else
         printf "%s  \e[31m%-35s\e[m  %-35s  %s\n" "$id" "$name" "$image" "$status" 1>&2
       fi
-      docker logs $FOLLOW $id
+      docker logs $FOLLOW $id 2>&1
       [ $? -eq 0 ] && let RC=RC+1
       [ -n "$LAST" ] && exit 0
     fi
