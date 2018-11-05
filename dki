@@ -38,4 +38,4 @@ while IFS= read -a A; do
   fi
   let RC=RC+1
 done < $TMPFILE
-echo "$RC containers found"
+echo "$RC images found"

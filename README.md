@@ -55,11 +55,12 @@ The following scripts are available: **dkl**, **dkll**, **dka**, **dks**,
 
   | ```$ dki```  | List Docker images.  |
   | -- | -- |
-  | ```$ dki -a```  | List all Docker images.  |
   | ```$ dki -d```  | List all dangling Docker images.  |
+  | ```$ dki -a```  | List all Docker images.  |
 
-- **dkrmi [-a] [id/name ...]**
+- **dkrmi [-a|-d] [id/name ...]**
 
   | ```$ dkrmi 77582d6037d7```<br>```$ dkrmi openjdk```  | Remove Docker image with id or name.  |
   | -- | -- |
+  | ```$ dkrmi -d```  | Remove all dangling Docker images.  |
   | ```$ dkrmi -a```  | Remove all Docker images (**CAREFUL!!**).  |

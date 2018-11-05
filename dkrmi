@@ -6,14 +6,19 @@ HWD=`cd "${0%/*}" >/dev/null 2>&1; echo $PWD`
 ALL=""; LIST=""
 while [ $# -gt 0 ]; do
   case "$1" in
-    -a | all ) ALL=true; shift ;;
-    -? ) echo "Usage: ${0##*/} [-a|all] [id/name ...]" 1>&2; exit 1 ;;
+    -a | all ) ALL="all"; shift ;;
+    -d ) ALL="dangling"; shift ;;
+    -? ) echo "Usage: ${0##*/} [-a|-d] [id/name ...]" 1>&2; exit 1 ;;
     * ) [ -n "$1" ] && LIST+=" $1"; shift ;;
   esac
 done
 [ -z "$LIST" -a -n "$ALL" ] && LIST=all
 #
-docker images -a | awk -f "$HWD/dki.awk" > $TMPFILE
+case "$ALL" in
+# all ) docker images -a | awk -f "$HWD/dki.awk" > $TMPFILE
+  dangling ) docker images -a -f dangling=true | awk -f "$HWD/dki.awk" > $TMPFILE ;;
+  * ) docker images -a | awk -f "$HWD/dki.awk" > $TMPFILE ;;
+esac
 #
 typeset -i RC=0
 for dkn in $LIST; do
